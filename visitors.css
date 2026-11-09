@@ -1,0 +1,14 @@
+/* Counters have a deliberately neutral, compact presentation. */
+.eai-visitor-metrics{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.eai-visitor-metric{background:#fff;border:2px solid #d7e7fb;border-radius:15px;padding:6px 11px;min-width:83px;display:flex;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 3px 0 #dbe9fb}
+.eai-visitor-metric .v-label{font-size:11px;line-height:1.35;color:#42598c;font-weight:700;white-space:nowrap}
+.eai-visitor-metric .v-value{font-weight:900;font-size:19px;line-height:1.4;color:#233b83;direction:ltr;font-variant-numeric:tabular-nums}
+.eai-visitor-panel{margin:13px 0 15px;padding:16px 22px;background:#fff;border:1px solid #d6e6fb;border-radius:22px;box-shadow:0 6px 16px #233c7520}
+.eai-visitor-panel h3{margin:0 0 12px;color:#233b83;font-size:20px}
+.eai-visitor-panel .eai-visitor-metrics{gap:12px}
+.eai-visitor-panel .eai-visitor-metric{padding:12px 17px;min-width:165px;background:#f6faff}
+.eai-visitor-panel .v-label{font-size:14px}
+.eai-visitor-panel .v-value{font-size:29px}
+.eai-visitor-status{color:#687697;font-size:12px;margin:12px 0 0;line-height:1.8}
+@media(max-width:800px){.site-header .header-inner{flex-wrap:wrap}.site-header .eai-visitor-metrics{width:100%;justify-content:center;order:4}.site-header .eai-visitor-metric{flex:1;max-width:180px}}
+@media(max-width:430px){.eai-visitor-panel .eai-visitor-metric{flex:1;min-width:125px}.eai-visitor-panel{padding:14px}.eai-visitor-metrics{gap:7px}}
