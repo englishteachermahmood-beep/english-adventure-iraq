@@ -25,7 +25,14 @@ if (ready) {
       // Published field is in the query because Firestore rules are NOT filters.
       const q = query(collection(db,'lessons'),where('published','==',true));
       onSnapshot(q, (set) => {
-        const items=set.docs.map(d=>d.data());
+        // Restore the [word, picture] format expected by the existing lesson games.
+        const items=set.docs.map(d=>{
+          const data=d.data();
+          return {...data,words:(Array.isArray(data.words)?data.words:[]).map(w=>
+            Array.isArray(w)?[String(w[0]??''),String(w[1]??'📘')]:
+            (w&&typeof w==='object')?[String(w.text??''),String(w.picture??'📘')]:[String(w??''),'📘']
+          ).filter(w=>w[0].trim())};
+        });
         if (window.EAI_PUBLIC) window.EAI_PUBLIC.applyLessons(items);
         try { localStorage.setItem('eai_public_content_v14',JSON.stringify(items)); } catch {}
       }, (e) => console.warn('Lesson sync:',e.code||e.message));
