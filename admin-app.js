@@ -7,14 +7,16 @@ const BOOK=window.EAI_SEED_DATA?.units||[],SEED=window.EAI_SEED_DATA?.lessons||{
 const BOOK2=window.EAI_GRADE2_SEED_DATA?.units||[],SEED2=window.EAI_GRADE2_SEED_DATA?.lessons||{};
 const BOOK3=window.EAI_GRADE3_SEED_DATA?.units||[],SEED3=window.EAI_GRADE3_SEED_DATA?.lessons||{};
 const BOOK4=window.EAI_GRADE4_SEED_DATA?.units||[],SEED4=window.EAI_GRADE4_SEED_DATA?.lessons||{};
+const BOOK5=window.EAI_GRADE5_SEED_DATA?.units||[],SEED5=window.EAI_GRADE5_SEED_DATA?.lessons||{};
+const BOOK6=window.EAI_GRADE6_SEED_DATA?.units||[],SEED6=window.EAI_GRADE6_SEED_DATA?.lessons||{};
 const gradeOf=d=>Number(d?.grade||1);
 let firebase=null,auth=null,db=null,docs=[],selected=null,cloudEnabled=false,user=null;
 const status=(msg,kind='ok')=>{$('status').innerHTML=`<div class="${kind}">${esc(msg)}</div>`;};
 function syncUnitMenus(){
- const grade=Number($('gradeId').value||1),books=grade===2?BOOK2:grade===3?BOOK3:grade===4?BOOK4:BOOK,chosen=$('unitId').value;
+ const grade=Number($('gradeId').value||1),books=grade===2?BOOK2:grade===3?BOOK3:grade===4?BOOK4:grade===5?BOOK5:grade===6?BOOK6:BOOK,chosen=$('unitId').value;
  $('unitId').innerHTML=books.map(u=>`<option value="${u.id}">Unit ${u.id} – ${esc(u.title)}</option>`).join('');
  if(books.some(u=>String(u.id)===chosen))$('unitId').value=chosen;
- const filterGrade=$('gradeFilter').value,filterBook=filterGrade==='4'?BOOK4:filterGrade==='3'?BOOK3:filterGrade==='2'?BOOK2:filterGrade==='1'?BOOK:null,current=$('filter').value;
+ const filterGrade=$('gradeFilter').value,filterBook=filterGrade==='6'?BOOK6:filterGrade==='5'?BOOK5:filterGrade==='4'?BOOK4:filterGrade==='3'?BOOK3:filterGrade==='2'?BOOK2:filterGrade==='1'?BOOK:null,current=$('filter').value;
  const opts=filterBook?filterBook.map(u=>`<option value="${u.id}">Unit ${u.id} – ${esc(u.title)}</option>`).join(''):'';
  $('filter').innerHTML='<option value="all">جميع الوحدات</option>'+opts;
  if(filterBook&&filterBook.some(u=>String(u.id)===current))$('filter').value=current;
@@ -106,6 +108,21 @@ async function seed4(){
    status(`تم استيراد ${count} درساً للصف الرابع دون استبدال الدروس الموجودة. راجعها قبل النشر.`);
  }catch(e){handleError(e)}
 }
+async function seedUpper(grade, lessonMap) {
+ if(!confirm(`استيراد 32 درساً تدريبياً للصف ${grade===5?'الخامس':'السادس'}؟ لن نغيّر أي درس موجود.`))return;
+ try {
+   const {writeBatch,doc,serverTimestamp}=firebase.fs, exists=new Set(docs.map(d=>d.id));
+   const batch=writeBatch(db); let count=0;
+   for (const [u,list] of Object.entries(lessonMap)) for(const l of list){
+     const id=key(grade,Number(u),l.id); if(exists.has(id))continue;
+     batch.set(doc(db,'lessons',id),{grade,unitId:Number(u),lessonId:l.id,title:l.title,ar:l.ar,
+       icon:l.icon,words:wordsToFirestore(l.words),sentences:l.sentences,published:true,updatedAt:serverTimestamp()});count++;
+   }
+   if(count)await batch.commit();
+   await refresh();
+   status(`تم استيراد ${count} درساً جديداً للصف ${grade===5?'الخامس':'السادس'} دون استبدال أي درس موجود.`);
+ }catch(e){handleError(e)}
+}
 async function activate(){if(!docs.some(d=>d.published)){status('استورد أو أضف درساً منشوراً قبل تفعيل النشر السحابي.','error');return}if(!confirm('بعد التفعيل سيعتمد موقع الطلاب على دروس Firestore المنشورة بدلاً من الدروس المحلية. هل تؤكد؟'))return;try{const {setDoc,doc,serverTimestamp}=firebase.fs;await setDoc(doc(db,'site_meta','public'),{cloudEnabled:true,updatedAt:serverTimestamp()});cloudEnabled=true;renderList();status('تم تفعيل المحتوى السحابي. راجع رابط الموقع المنشور بعد رفع الملفات الجديدة.')}catch(e){handleError(e)}}
 async function boot(){if(!configured){$('setup').classList.remove('hidden');return}try{const base='https://www.gstatic.com/firebasejs/11.10.0/';const [{initializeApp},{getAuth,signInWithEmailAndPassword,signOut},{getFirestore,doc,getDoc,getDocs,collection,writeBatch,serverTimestamp,deleteDoc,setDoc}]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')]);const app=initializeApp(cfg);auth=getAuth(app);db=getFirestore(app);firebase={au:{signInWithEmailAndPassword,signOut},fs:{getFirestore,doc,getDoc,getDocs,collection,writeBatch,serverTimestamp,deleteDoc,setDoc}};$('login').classList.remove('hidden');}catch(e){$('setup').classList.remove('hidden');$('setup').insertAdjacentHTML('beforeend','<div class="error">تعذّر تحميل Firebase. تأكد من الإنترنت وإعدادات التطبيق.</div>')}}
-$('loginForm').addEventListener('submit',login);$('lessonForm').addEventListener('submit',save);$('delete').addEventListener('click',remove);$('seed').addEventListener('click',seed);$('seed2').addEventListener('click',seed2);$('seed3').addEventListener('click',seed3);$('seed4').addEventListener('click',seed4);$('activate').addEventListener('click',activate);$('reset').addEventListener('click',()=>fillForm(null));$('new').addEventListener('click',()=>fillForm(null));$('filter').addEventListener('change',renderList);$('gradeFilter').addEventListener('change',()=>{syncUnitMenus();renderList()});$('gradeId').addEventListener('change',()=>{syncUnitMenus();if(!selected)$('lessonId').value=nextLesson(Number($('unitId').value),Number($('gradeId').value))});$('search').addEventListener('input',renderList);$('unitId').addEventListener('change',()=>{if(!selected)$('lessonId').value=nextLesson(Number($('unitId').value),Number($('gradeId').value))});$('items').addEventListener('click',e=>{const item=e.target.closest('[data-id]');if(item){const d=docs.find(x=>x.id===item.dataset.id);if(d)fillForm(d)}});$('signout').addEventListener('click',async()=>{await firebase.au.signOut(auth);user=null;location.reload()});$('backup').addEventListener('click',()=>download('english-adventure-lessons-backup.json',JSON.stringify(docs,null,2)));boot();
+$('loginForm').addEventListener('submit',login);$('lessonForm').addEventListener('submit',save);$('delete').addEventListener('click',remove);$('seed').addEventListener('click',seed);$('seed2').addEventListener('click',seed2);$('seed3').addEventListener('click',seed3);$('seed4').addEventListener('click',seed4);$('seed5').addEventListener('click',()=>seedUpper(5,SEED5));$('seed6').addEventListener('click',()=>seedUpper(6,SEED6));$('activate').addEventListener('click',activate);$('reset').addEventListener('click',()=>fillForm(null));$('new').addEventListener('click',()=>fillForm(null));$('filter').addEventListener('change',renderList);$('gradeFilter').addEventListener('change',()=>{syncUnitMenus();renderList()});$('gradeId').addEventListener('change',()=>{syncUnitMenus();if(!selected)$('lessonId').value=nextLesson(Number($('unitId').value),Number($('gradeId').value))});$('search').addEventListener('input',renderList);$('unitId').addEventListener('change',()=>{if(!selected)$('lessonId').value=nextLesson(Number($('unitId').value),Number($('gradeId').value))});$('items').addEventListener('click',e=>{const item=e.target.closest('[data-id]');if(item){const d=docs.find(x=>x.id===item.dataset.id);if(d)fillForm(d)}});$('signout').addEventListener('click',async()=>{await firebase.au.signOut(auth);user=null;location.reload()});$('backup').addEventListener('click',()=>download('english-adventure-lessons-backup.json',JSON.stringify(docs,null,2)));boot();
