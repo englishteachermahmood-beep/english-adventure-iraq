@@ -23,6 +23,22 @@ function syncUnitMenus(){
 }
 syncUnitMenus();
 const key=(grade,u,id)=>grade===1?`${u}_${id}`:`g${grade}_${u}_${id}`;
+// Firestore does not permit an array nested directly inside another array.
+// Store words as objects, while keeping the local editor/game format [text,picture].
+function wordsToFirestore(words) {
+  return (Array.isArray(words)?words:[]).map(w => {
+    const text = Array.isArray(w)?w[0]:w?.text;
+    const picture = Array.isArray(w)?w[1]:w?.picture;
+    return {text:String(text??'').trim(),picture:String(picture??'📘')};
+  }).filter(w => w.text);
+}
+function wordsFromFirestore(words) {
+  return (Array.isArray(words)?words:[]).map(w =>
+    Array.isArray(w)?[String(w[0]??''),String(w[1]??'📘')]:
+    (w && typeof w==='object')?[String(w.text??''),String(w.picture??'📘')]:[]
+  ).filter(w => w.length===2 && w[0].trim());
+}
+
 function formRead(){const unitId=Number($('unitId').value),lessonId=Number($('lessonId').value);const words=$('words').value.split(/\r?\n/).filter(x=>x.trim()).map(line=>{const i=line.indexOf('|');return i<0?[line.trim(),'📘']:[line.slice(0,i).trim(),line.slice(i+1).trim()||'📘']});const sentences=$('sentences').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
 return {...(Number($('gradeId').value)>1?{grade:Number($('gradeId').value)}:{}),unitId,lessonId,title:$('title').value.trim(),ar:$('ar').value.trim(),icon:$('icon').value.trim()||'📚',words,sentences,published:$('publishedInput').checked}}
 function fillForm(d){
